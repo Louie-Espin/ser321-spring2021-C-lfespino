@@ -1,0 +1,20 @@
+PING www.asu.edu.cdn.cloudflare.net (104.16.50.14) 56(124) bytes of data.
+64 bytes from 104.16.50.14 (104.16.50.14): icmp_seq=1 ttl=55 time=72.8 ms
+RR: 	ip-10-120-70-117.us-west-2.compute.internal (10.120.70.117)
+	100.90.252.131 (100.90.252.131)
+	100.90.252.144 (100.90.252.144)
+	100.90.251.0 (100.90.251.0)
+	100.90.252.48 (100.90.252.48)
+	100.90.252.40 (100.90.252.40)
+	150.222.139.72 (150.222.139.72)
+	150.222.176.96 (150.222.176.96)
+	150.222.176.39 (150.222.176.39)
+
+64 bytes from 104.16.50.14 (104.16.50.14): icmp_seq=2 ttl=55 time=65.4 ms	(same route)
+64 bytes from 104.16.50.14 (104.16.50.14): icmp_seq=3 ttl=55 time=153 ms	(same route)
+64 bytes from 104.16.50.14 (104.16.50.14): icmp_seq=4 ttl=55 time=70.6 ms	(same route)
+64 bytes from 104.16.50.14 (104.16.50.14): icmp_seq=5 ttl=55 time=73.3 ms	(same route)
+
+--- www.asu.edu.cdn.cloudflare.net ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 3999ms
+rtt min/avg/max/mdev = 65.485/87.124/153.273/33.192 ms

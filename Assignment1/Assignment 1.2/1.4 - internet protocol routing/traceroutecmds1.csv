@@ -1,0 +1,8 @@
+traceroute to www.asu.edu (104.16.50.14), 30 hops max, 60 byte packets
+ 1  _gateway (192.168.0.1)  1.276 ms  2.227 ms  2.191 ms
+ 2  phn4-dsl-gw11.phn4.qwest.net (71.32.112.11)  15.226 ms  15.506 ms  15.766 ms
+ 3  71-32-113-81.phn4.qwest.net (71.32.113.81)  12.356 ms *  12.652 ms
+ 4  * * *
+ 5  ae-20-3025.ebr3.Washington12.Level3.net (4.69.208.121)  18.941 ms  19.909 ms  19.994 ms
+ 6  4.30.5.78 (4.30.5.78)  19.448 ms  17.128 ms  17.139 ms
+ 7  104.16.50.14 (104.16.50.14)  18.008 ms  18.293 ms  18.257 ms
