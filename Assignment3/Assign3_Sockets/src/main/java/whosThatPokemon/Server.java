@@ -5,10 +5,12 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import org.json.*;
 import java.util.Base64;
+import java.util.Calendar;
+import java.util.Date;
+
 import javax.imageio.ImageIO;
 import org.json.JSONException;
 import java.util.Random;
-
 /**
  * TCP Server class
  */
@@ -62,30 +64,28 @@ public class Server {
 				JSONsend(toClient, JSONtext("Welcome to 'Who's That Pokémon!'"));
 				JSONsend(toClient, JSONimage("pokemon-default.jpg")); // send image 'Who's That Pokémon!'
 				
-				JSONsend(toClient, JSONtext("What is your name?"));
-				JSONObject clientName = JSONreceive(fromClient); // receive name
-				if (clientName.has("data")) cName = clientName.getString("data");
+				JSONObject clientName = questionManage(toClient, fromClient, JSONquestion("What is your name?"), "NONE");
+				cName = clientName.getString("data");
 				
-				JSONsend(toClient, JSONtext(cName + "! How many Pokémon would you like to find? Enter a number."));
-				JSONObject clientQ = JSONreceive(fromClient); // receive numQuestions
-				if (clientName.has("data")) numQuestions = Integer.parseInt((clientQ.getString("data")));
+				JSONsend(toClient, JSONtext(cName + "! How many Pokémon would you like to find?"));
+				JSONObject clientQ = questionManage(toClient, fromClient, JSONquestion("Enter a number."), "NUMERIC");
+				numQuestions = Integer.parseInt((clientQ.getString("data")));
 				
 				JSONsend(toClient, JSONtext(cName + ", you will have to find " + numQuestions + " Pokémon!"));
 				
 				// new thread for this client's match
 				numMatches++;
 				new Thread(new Match(clientSocket, fromClient, toClient, cName, numQuestions, numMatches)).start();
-				System.out.println("CLIENT MATCH START!");
 			}
 		} catch (IOException IOex) {
-			System.out.println("IOException: CONNECTION FAILED.");
-			System.exit(1);
+			System.out.println("IOException: CONNECTION FAILED. RESTARTING SERVER.");
+			// System.exit(1);
 		} catch (JSONException Jex) {
-			System.out.println("JSONException: Bad JSON.");
-			System.exit(1);
+			System.out.println("JSONException: Bad JSON. RESTARTING SERVER.");
+			// System.exit(1);
 		} catch (Exception e) {
-			System.out.println("SERVER EXCEPTION.");
-			System.exit(1);
+			System.out.println("SERVER EXCEPTION. RESTARTING SERVER.");
+			// System.exit(1);
 		}
 	}
 	
@@ -186,59 +186,69 @@ public class Server {
 				questionPokemon = new Pokemon[numQuestions]; 
 				
 				Random randomizer = new Random();
-				
 				for (int i = 0; i < numQuestions; i++) {
 					questionPokemon[i] = allPokemon[randomizer.nextInt(totalPokemon)];
 				}
 				
-				JSONsend(toClient, JSONtext("Type 'START' to begin match!"));
-				String startGame = null;
-				JSONObject startSignal = JSONreceive(fromClient); // receive start signal
-				if (startSignal.has("data")) startGame = (startSignal.getString("data"));
+				JSONsend(toClient, JSONtext(clientName + ", type 'START' to begin match!"));
+				questionManage(toClient, fromClient, JSONquestion("Would you like to start?"), "START");
+				JSONsend(toClient, JSONtext("Find " + numQuestions + " Pokemon!"));
 				
-				JSONsend(toClient, JSONtext(Integer.toString(numQuestions)));
-				JSONsend(toClient, JSONtext("Match begins!"));
+				Calendar cal = Calendar.getInstance();
+		        Date startTime = cal.getTime();
+		        cal.add(Calendar.SECOND, time);
+		        Date finishTime = cal.getTime();
+		        Calendar cal2;
+				Date currentTime;
+				int correctAnswers = 0;
 				
 				for (int i = 0; i < numQuestions; i++) {
+					
 					JSONsend(toClient, JSONimage(questionPokemon[i].getImage()));
-					JSONsend(toClient, JSONtext("Number of correct answers: " + i));
-					JSONsend(toClient, JSONtext("Who's That Pokémon!"));
 					
-					String currentAnswer = ""; // stores the current answer
-					JSONObject clientAnswer = JSONreceive(fromClient); // receive numQuestions
-					if (clientAnswer.has("data")) currentAnswer = clientAnswer.getString("data");
+					System.out.println(questionPokemon[i].getName());
+					questionManage(toClient, fromClient, JSONquestion("Who's That Pokémon!?"), questionPokemon[i].getName());
 					
-					if (currentAnswer.equalsIgnoreCase(questionPokemon[i].getName())) {
-						JSONsend(toClient, JSONtext("CORRECT!"));
+					correctAnswers++; JSONsend(toClient, JSONtext("Number of correct answers: " + correctAnswers));
+					cal2 =  Calendar.getInstance();
+					currentTime = cal2.getTime();
+					JSONsend(toClient, JSONtext("Current Time: " + currentTime));
+					JSONsend(toClient, JSONtext("Time to Finish: " + finishTime));
+					if (currentTime.after(finishTime)) {
+						JSONsend(toClient, JSONtext("TIMES UP! Sorry, you lost!"));
+						JSONsend(toClient, JSONimage("failure.jpg"));
+						break;
 					}
 				}
 				
+				if (correctAnswers == numQuestions) {
+					JSONsend(toClient, JSONimage("success.jpg")); // send success image
+					JSONsend(toClient, JSONtext("CONGRATULATIONS! You're a Pokémon master!"));
+				}
+				
+				JSONsend(toClient, JSONtext("Press the [X] button to finish."));
 				
 			} catch (IOException IOex) {
 				System.out.println("CLIENT DISCONNECTED");
+			} catch (JSONException Jex) {
+				System.out.println("JSONException: CLIENT DISCONNECTED.");
 			}
 		}
 	}
 	
-	/*
-	 * request: { "selected": <int: 1=joke, 2=quote, 3=image, 4=random> }
-	 * 
-	 * response: {"datatype": <int: 1-string, 2-byte array>, "type": <"joke",
-	 * "quote", "image">, "data": <thing to return> }
-	 * 
-	 * error response: {"error": <error string> }
-	 */
+	public static JSONObject JSONerror(String err) {
+		JSONObject json = new JSONObject();
+		json.put("datatype", 0);
+		json.put("type", "error");
+		json.put("data", err);
+		return json;
+	}
+	
 	public static JSONObject JSONtext(String s) {
 		JSONObject json = new JSONObject();
 		json.put("datatype", 1);
 		json.put("type", "text");
 		json.put("data", s);
-		return json;
-	}
-	
-	public static JSONObject JSONerror(String err) {
-		JSONObject json = new JSONObject();
-		json.put("error", err);
 		return json;
 	}
 	
@@ -249,8 +259,7 @@ public class Server {
 		
 		File imgFile = new File("img/jpg/" + s);
 		if (!imgFile.exists()) {
-			System.err.println("Cannot find file");
-			System.exit(-1);
+			return JSONerror("ERROR: Server could not send image!");
 		}
 		
 		BufferedImage img = ImageIO.read(imgFile);
@@ -264,6 +273,14 @@ public class Server {
 			json.put("data", encoder.encodeToString(bytes));
 			return json;
 		} return JSONerror("Unable to save image to byte array");
+	}
+	
+	public static JSONObject JSONquestion(String q) {
+		JSONObject json = new JSONObject();
+		json.put("datatype", 3);
+		json.put("type", "question");
+		json.put("data", q);
+		return json;
 	}
 	
 	/** 
@@ -286,8 +303,67 @@ public class Server {
 		if (input.has("error")) {
 			System.out.println(input.getString("error"));
 		} else if (input.has("data")){
-	        System.out.println("Client data received!");
+	        // System.out.println("Client data received!");
 	    }
 		return input;
 	}
+	
+	/*
+	 * questionManage: manages sending a question to client
+	 */
+	public static JSONObject questionManage(OutputStream out, InputStream in, JSONObject jsonQuestion, String expected) throws IOException {
+		JSONsend(out, jsonQuestion);
+		JSONObject clientJson = JSONreceive(in);
+		
+		if (expected.equalsIgnoreCase("NUMERIC")) {
+			String answer = clientJson.getString("data");
+			Boolean check = isInteger(answer);
+			while(check == false) {
+				JSONsend(out, JSONtext("Error: Please enter a whole number!"));
+				JSONsend(out, jsonQuestion);
+				clientJson = JSONreceive(in);
+				answer = clientJson.getString("data");
+				check = isInteger(answer);
+			}
+			return clientJson;
+		} 
+		else if (expected.equalsIgnoreCase("NONE")) {
+			return clientJson;
+			
+		} else if (expected.equalsIgnoreCase("START")) {
+			String answer = clientJson.getString("data");
+			Boolean check = answer.equalsIgnoreCase("START");
+			while(check == false) {
+				JSONsend(out, jsonQuestion);
+				clientJson = JSONreceive(in);
+				answer = clientJson.getString("data");
+				check = answer.equalsIgnoreCase(expected);
+			}
+			JSONsend(out, JSONtext("MATCH START!"));
+			return clientJson;
+		} else {
+			String answer = clientJson.getString("data");
+			Boolean check = answer.equalsIgnoreCase(expected);
+			while(check == false) {
+				JSONsend(out, JSONtext("Wrong answer! Please try again."));
+				JSONsend(out, jsonQuestion);
+				clientJson = JSONreceive(in);
+				answer = clientJson.getString("data");
+				check = answer.equalsIgnoreCase(expected);
+			}
+			JSONsend(out, JSONtext("CORRECT! It's " + expected + "!"));
+			return clientJson;
+		}
+	}
+	
+	public static boolean isInteger(String s) {
+	    try { 
+	        Integer.parseInt(s); 
+	    } catch(NumberFormatException e) { 
+	        return false; 
+	    }
+	    // only got here if we didn't return false
+	    return true;
+	}
+	
 }

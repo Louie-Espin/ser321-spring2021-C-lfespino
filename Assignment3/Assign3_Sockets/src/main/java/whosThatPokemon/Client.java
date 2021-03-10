@@ -2,7 +2,6 @@ package whosThatPokemon;
 
 import java.io.*;
 import java.net.*;
-import org.json.*;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.image.Image;
@@ -69,41 +68,42 @@ public class Client {
 				waitForRunning(); // wait for ClientGui to tell us it is running
 				while(getRunning()) {
 					
-					JSONreceive(fromServer); // receive text "Server connection established."
-					JSONreceive(fromServer); // receive text "Welcome to 'Who's That Pokémon!'"
-					JSONreceive(fromServer); // receive image 'Who's That Pokémon!'
+					JSONreceive(fromServer, toServer);
 					
-					JSONreceive(fromServer); // receive text "What is your name?"
-					setWaiting(true); waitForPlayerAction();
-					JSONsend(toServer); // responds
-					
-					JSONreceive(fromServer); // receive text "Hello name! How many Pokémon would you like to find?"
-					setWaiting(true); waitForPlayerAction();
-					JSONsend(toServer); // responds
-					
-					JSONreceive(fromServer); // receive text '[name], you will have to find [num] Pokémon!'
-					JSONreceive(fromServer); // receive text "You will have [time] seconds to answer!"
-					JSONreceive(fromServer); // Randomizing pokemon...
-					
-					JSONreceive(fromServer); // Type 'START' to begin match!
-					setWaiting(true); waitForPlayerAction();
-					JSONsend(toServer); // responds
-					
-					JSONreceive(fromServer); // receive number of turns
-					JSONreceive(fromServer); // receive text "Match begins!"
-					
-					Boolean gameDone = false;
-					while (!gameDone) {
-						JSONreceive(fromServer); // receive new pokemon image
-						JSONreceive(fromServer); // receive text "Number of correct answers:"
-						JSONreceive(fromServer); // receive text "Who's That Pokémon!"
-						
-						setWaiting(true); waitForPlayerAction();
-						JSONsend(toServer); // responds
-						
-						JSONreceive(fromServer); // receive text "CORRECT!"
-					}
-					
+//					JSONreceive(fromServer); // receive text "Server connection established."
+//					JSONreceive(fromServer); // receive text "Welcome to 'Who's That Pokémon!'"
+//					JSONreceive(fromServer); // receive image 'Who's That Pokémon!'
+//					
+//					JSONreceive(fromServer); // receive text "What is your name?"
+//					setWaiting(true); waitForPlayerAction();
+//					JSONsend(toServer); // responds
+//					
+//					JSONreceive(fromServer); // receive text "Hello name! How many Pokémon would you like to find?"
+//					setWaiting(true); waitForPlayerAction();
+//					JSONsend(toServer); // responds
+//					
+//					JSONreceive(fromServer); // receive text '[name], you will have to find [num] Pokémon!'
+//					JSONreceive(fromServer); // receive text "You will have [time] seconds to answer!"
+//					JSONreceive(fromServer); // Randomizing pokemon...
+//					
+//					JSONreceive(fromServer); // Type 'START' to begin match!
+//					setWaiting(true); waitForPlayerAction();
+//					JSONsend(toServer); // responds
+//					
+//					JSONreceive(fromServer); // receive number of turns
+//					JSONreceive(fromServer); // receive text "Match begins!"
+//					
+//					Boolean gameDone = false;
+//					while (!gameDone) {
+//						JSONreceive(fromServer); // receive new pokemon image
+//						JSONreceive(fromServer); // receive text "Number of correct answers:"
+//						JSONreceive(fromServer); // receive text "Who's That Pokémon!"
+//						
+//						setWaiting(true); waitForPlayerAction();
+//						JSONsend(toServer); // responds
+//						
+//						JSONreceive(fromServer); // receive text "CORRECT!"
+//					}
 				}
 				serverSocket.close();
 				System.exit(0);
@@ -200,8 +200,7 @@ public class Client {
 	 */
 	public static void JSONsend(OutputStream out) throws IOException {
 		String answer = ClientGui.getAnswer();
-        stringToGUI("You:");
-        stringToGUI(answer);
+        stringToGUI("YOU: " + answer);
         stringToGUI("");
         byte[] outputBytes = JsonUtils.toByteArray(JSONtext(answer));
         NetworkUtils.Send(out, outputBytes);
@@ -211,37 +210,45 @@ public class Client {
 	 * receiveJSON: Receives JSON data from the server
 	 * @throws IOException: exception thrown when Input/Output is not found
 	 */
-	public static void JSONreceive(InputStream in) throws IOException {
+	public static void JSONreceive(InputStream in, OutputStream out) throws IOException {
 		
 		byte[] inputBytes = NetworkUtils.Receive(in);
 		JSONObject input = JsonUtils.fromByteArray(inputBytes);
 
-		if (input.has("error")) {
-			stringToGUI("Server: " + input.getString("error"));
+		switch (input.getInt("datatype")) {
+		case (0): {
+			stringToGUI("SERVER ERROR:" + input.getString("data"));
 			stringToGUI("");
+			break;
 		}
-		else {
-			switch (input.getInt("datatype")) {
-				case (1): {
-					stringToGUI("Server:");
-					stringToGUI(input.getString("data"));
-					stringToGUI("");
-					break;
+		case (1): {
+			stringToGUI("SERVER: " + input.getString("data"));
+			stringToGUI("");
+			break;
+		}
+		case (2): {
+			Base64.Decoder decoder = Base64.getDecoder();
+			byte[] bytes = decoder.decode(input.getString("data"));
+			Image img = null;
+			
+			try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes)) {
+				img = new Image(bais);
+			}
+			if (img != null) imageToGUI(img);
+				break;
+			}
+			case (3): {
+				stringToGUI("SERVER: " + input.getString("data"));
+				stringToGUI("");
+				
+				setWaiting(true); try {
+					waitForPlayerAction();
+				} catch (InterruptedException IOex) {
+					stringToGUI("Something went wrong. Please try again later.");
+					IOex.printStackTrace();
 				}
-				case (2): {
-					stringToGUI("Server sent an image");
-					stringToGUI("");
-					Base64.Decoder decoder = Base64.getDecoder();
-					byte[] bytes = decoder.decode(input.getString("data"));
-					Image img = null;
-					
-					try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes)) {
-						img = new Image(bais);
-					}
-					if (img != null) imageToGUI(img);
-					break;
-				}
-            }
-        }
+				JSONsend(out); // client responds
+			}
+		}
 	}
 }
