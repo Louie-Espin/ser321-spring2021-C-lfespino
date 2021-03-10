@@ -47,35 +47,43 @@ public class Server {
 			int numMatches = 0;
 			
 			while(true) {
-				System.out.println("WAITING FOR CONNECTIONS...");
-				Socket clientSocket = serverSocket.accept();
-				
-				// create an input stream to receive data
-				InputStream fromClient = clientSocket.getInputStream();
-				// create an output stream to send data
-				OutputStream toClient = clientSocket.getOutputStream();
-				
-				String cName = "unkown"; // client name string
-				int numQuestions = 0; // client numQuestions int
-				
-				System.out.println("SERVER CONNECTED TO CLIENT!");
-				
-				JSONsend(toClient, JSONtext("Connection established."));
-				JSONsend(toClient, JSONtext("Welcome to 'Who's That Pokémon!'"));
-				JSONsend(toClient, JSONimage("pokemon-default.jpg")); // send image 'Who's That Pokémon!'
-				
-				JSONObject clientName = questionManage(toClient, fromClient, JSONquestion("What is your name?"), "NONE");
-				cName = clientName.getString("data");
-				
-				JSONsend(toClient, JSONtext(cName + "! How many Pokémon would you like to find?"));
-				JSONObject clientQ = questionManage(toClient, fromClient, JSONquestion("Enter a number."), "NUMERIC");
-				numQuestions = Integer.parseInt((clientQ.getString("data")));
-				
-				JSONsend(toClient, JSONtext(cName + ", you will have to find " + numQuestions + " Pokémon!"));
-				
-				// new thread for this client's match
-				numMatches++;
-				new Thread(new Match(clientSocket, fromClient, toClient, cName, numQuestions, numMatches)).start();
+				try {
+					System.out.println("WAITING FOR CONNECTIONS...");
+					Socket clientSocket = serverSocket.accept();
+					
+					// create an input stream to receive data
+					InputStream fromClient = clientSocket.getInputStream();
+					// create an output stream to send data
+					OutputStream toClient = clientSocket.getOutputStream();
+					
+					String cName = "unkown"; // client name string
+					int numQuestions = 0; // client numQuestions int
+					
+					System.out.println("SERVER CONNECTED TO CLIENT!");
+					
+					JSONsend(toClient, JSONtext("Connection established."));
+					JSONsend(toClient, JSONtext("Welcome to 'Who's That Pokémon!'"));
+					JSONsend(toClient, JSONimage("pokemon-default.jpg")); // send image 'Who's That Pokémon!'
+					
+					JSONObject clientName = questionManage(toClient, fromClient, JSONquestion("What is your name?"), "NONE");
+					cName = clientName.getString("data");
+					
+					JSONsend(toClient, JSONtext(cName + "! How many Pokémon would you like to find?"));
+					JSONObject clientQ = questionManage(toClient, fromClient, JSONquestion("Enter a number."), "NUMERIC");
+					numQuestions = Integer.parseInt((clientQ.getString("data")));
+					
+					JSONsend(toClient, JSONtext(cName + ", you will have to find " + numQuestions + " Pokémon!"));
+					
+					// new thread for this client's match
+					numMatches++;
+					new Thread(new Match(clientSocket, fromClient, toClient, cName, numQuestions, numMatches)).start();
+				} catch (IOException IOex) {
+					System.out.println("IOException: CONNECTION FAILED. RESTARTING SERVER.");
+				} catch (JSONException Jex) {
+					System.out.println("JSONException: Bad JSON. RESTARTING SERVER.");
+				} catch (Exception e) {
+					System.out.println("SERVER EXCEPTION. RESTARTING SERVER.");
+				}
 			}
 		} catch (IOException IOex) {
 			System.out.println("IOException: CONNECTION FAILED. RESTARTING SERVER.");
