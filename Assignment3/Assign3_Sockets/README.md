@@ -1,92 +1,64 @@
-# Assignment 3 Starter Code
+# Assignment 3 lfespino
 
+## How to run
 
-## GUI Usage
+## For TCP
+* 	First, use "gradle runServer" for default port 8080
+* 	If running this on a second system, use "gradle runServer −P port = port"
 
-### Code
+*	Next, use "gradle runClient" for default port 8080 and localhost
+*	If running server on a second system, use "gradle runClient − P port = port − P host = hostIP"
 
-1. Create an instance of the GUI
+## Problem 1: TCP sockets
+### Requirements Fullfilled
 
-   ```
-   ClientGui main = new ClientGui();
-   ```
+*	When the clients starts up connects to the Server, the server will
+	reply by asking for the name of the player.
 
-2. Create a new game and give it a grid dimension
+*	The client should send their name and the server should receive it and
+	greet the client by name and ask for the number of questions the client wants to try
+	to answer correctly in time.
 
-   ```
-   // the pineapple example is 2, but choose whatever dimension of grid you want
-   // you can change the dimension to see how the grid changes size
-   main.newGame(2); 
-   ```
+*	The client should enter a number and the server should use that number and the
+	previous client name to tell them they are ready to play.
 
-*Depending on how you want to run the system, 3 and 4 can be run how you want*
+*	After the user enters the name and num questions the server waits for a
+	"start" input which will start the question round.
 
-3. Insert image
+*	When the server receives a "start" it will start a timer with 5 sec * num
+	questions. This is the time the client has to answer "num" questions correctly.
 
-   ```
-   // the filename is the path to an image
-   // the first coordinate(0) is the row to insert in to
-   // the second coordinate(1) is the column to insert in to
-   // you can change coordinates to see the image move around the box
-   main.insertImage("img/Pineapple-Upside-down-cake_0_1.jpg", 0, 1);
-   ```
+*	The server will then send over the first question with an image of the pokemon.
+	The answer is printed in the server commandline.
 
-4. Show GUI
+*	The client must respond with the name of the pokemon. The client itself does not
+	know the answers nor store the questions.
 
-   ```
-   // true makes the dialog modal meaning that all interaction allowed is 
-   //   in the windows methods.
-   // false makes the dialog a pop-up which allows the background program 
-   //   that spawned it to continue and process in the background.
-   main.show(true);
-   ```
+*	The client enters an answer and the server checks the answer and responds accordingly.
+	The client can try as many times as they would like to give the correct answer.
 
-### Terminal 
+*	After each question loop, the server checks the current time and compares it to how much
+	time is left. If time has run out, the server send out "Time Out!" and a failure image
 
-```
-gradle Gui
-```
-*Note the current example will show you some sample errors, see main inside ClientGUI.java*
+*	If the server receives enough correct answers (based on num questions)
+	and the timer did not run out, then the server will send a "winner" image,
 
+*	The server sends out an image at the start, for each pokemon, and for win/lose conditions
+
+*	Images are only know by and handled on the server.
+
+*	Evaluations of the answer happen on the server side, the client
+	does not know the questions and their answers.
+
+### UML Description
+	
+	UML picture was added in the project folder
 
 ## Files
 
-
 ### ClientGui.java
-#### Summary
+### Client.java
+### Server.java
 
-> This is the main GUI to display the picture grid. 
-
-#### Methods
-  - show(boolean modal) :  Shows the GUI frame with the current state
-     * NOTE: modal means that it opens the GUI and suspends background processes. Processing still happens in the GUI If it is desired to continue processing in the background, set modal to false.
-   * newGame(int dimension) :  Start a new game with a grid of dimension x dimension size
-   * insertImage(String filename, int row, int col) :  Inserts an image into the grid
-   * appendOutput(String message) :  Appends text to the output panel
-   * submitClicked() :  Button handler for the submit button in the output panel
-
-### PicturePanel.java
-
-#### Summary
-
-> This is the image grid
-
-#### Methods
-
-- newGame(int dimension) :  Reset the board and set grid size to dimension x dimension
-- insertImage(String fname, int row, int col) :  Insert an image at (col, row)
-- insertImage(ByteArrayInputStream image, int row, int col) :  Insert an image at (col, row)
-
-### OutputPanel.java
-
-#### Summary
-
-> This is the input box, submit button, and output text area panel
-
-#### Methods
-
-- getInputText() :  Get the input text box text
-- setInputText(String newText) :  Set the input text box text
-- addEventHandlers(EventHandlers handlerObj) :  Add event listeners
-- appendOutput(String message) :  Add message to output text
-
+### ClientUDP.java
+### ServerUDP.java

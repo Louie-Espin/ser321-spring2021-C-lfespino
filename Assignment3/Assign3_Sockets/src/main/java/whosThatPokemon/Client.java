@@ -70,40 +70,6 @@ public class Client {
 					
 					JSONreceive(fromServer, toServer);
 					
-//					JSONreceive(fromServer); // receive text "Server connection established."
-//					JSONreceive(fromServer); // receive text "Welcome to 'Who's That Pokémon!'"
-//					JSONreceive(fromServer); // receive image 'Who's That Pokémon!'
-//					
-//					JSONreceive(fromServer); // receive text "What is your name?"
-//					setWaiting(true); waitForPlayerAction();
-//					JSONsend(toServer); // responds
-//					
-//					JSONreceive(fromServer); // receive text "Hello name! How many Pokémon would you like to find?"
-//					setWaiting(true); waitForPlayerAction();
-//					JSONsend(toServer); // responds
-//					
-//					JSONreceive(fromServer); // receive text '[name], you will have to find [num] Pokémon!'
-//					JSONreceive(fromServer); // receive text "You will have [time] seconds to answer!"
-//					JSONreceive(fromServer); // Randomizing pokemon...
-//					
-//					JSONreceive(fromServer); // Type 'START' to begin match!
-//					setWaiting(true); waitForPlayerAction();
-//					JSONsend(toServer); // responds
-//					
-//					JSONreceive(fromServer); // receive number of turns
-//					JSONreceive(fromServer); // receive text "Match begins!"
-//					
-//					Boolean gameDone = false;
-//					while (!gameDone) {
-//						JSONreceive(fromServer); // receive new pokemon image
-//						JSONreceive(fromServer); // receive text "Number of correct answers:"
-//						JSONreceive(fromServer); // receive text "Who's That Pokémon!"
-//						
-//						setWaiting(true); waitForPlayerAction();
-//						JSONsend(toServer); // responds
-//						
-//						JSONreceive(fromServer); // receive text "CORRECT!"
-//					}
 				}
 				serverSocket.close();
 				System.exit(0);

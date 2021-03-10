@@ -132,29 +132,16 @@ public class Server {
 				return pokeArray;
 			}
 			
-			public void setName(String n) {
-				this.name = n;
-			}
 			public String getName() {
 				return this.name;
 			}
 			
-			public void setNumber(int n) {
-				this.number = n;
-			}
-			public int setNumber() {
-				return this.number;
-			}
-			
-			public void setImage() {
-				this.image = "pokemon-" + this.number + ".jpg";
-			}
 			public String getImage() {
 				return this.image;
 			}
 		}
 		/*
-		 * properties of the Connect4Match class
+		 * properties of the Match class
 		 */
 		private Socket client;
 		private InputStream fromClient;
