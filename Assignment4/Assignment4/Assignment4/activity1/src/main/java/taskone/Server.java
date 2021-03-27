@@ -24,35 +24,42 @@ import org.json.JSONObject;
 class Server {
 
     public static void main(String[] args) throws Exception {
-        int port;
+        
+    	ServerSocket server;
         StringList strings = new StringList();
-
+        int port = 8000;
+        
         if (args.length != 1) {
             // gradle runServer -Pport=9099 -q --console=plain
             System.out.println("Usage: gradle runServer -Pport=9099 -q --console=plain");
-            System.exit(1);
+            System.exit(0);
         }
-        port = -1;
         try {
             port = Integer.parseInt(args[0]);
         } catch (NumberFormatException nfe) {
             System.out.println("[Port] must be an integer");
-            System.exit(2);
+            System.exit(1);
         }
-        ServerSocket server = new ServerSocket(port);
-        System.out.println("Server Started...");
-        while (true) {
-            System.out.println("Accepting a Request...");
-            Socket sock = server.accept();
-
-            Performer performer = new Performer(sock, strings);
-            performer.doPerform();
-            try {
-                System.out.println("close socket of client ");
-                sock.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        
+        server = new ServerSocket(port);
+        System.out.println("SERVER STARTED AT PORT: " + port);
+        
+        try {
+        	while (true) {
+                System.out.println("WAITING FOR REQUESTS...");
+                
+                try (Socket clientSocket = server.accept()) {
+                	System.out.println("CLIENT CONNECTED. STARTING PERFORMER");
+                	Performer performer = new Performer(clientSocket, strings);
+                    performer.doPerform();
+                } catch (Exception e){
+                	System.out.println("CLIENT DISCONNECTED. RESTARTING...");
+                }
+            }	
+        } catch (Exception e) {
+        	System.out.println("SERVER CLOSING.");
+        	server.close();
+        	System.exit(0);
         }
     }
 }

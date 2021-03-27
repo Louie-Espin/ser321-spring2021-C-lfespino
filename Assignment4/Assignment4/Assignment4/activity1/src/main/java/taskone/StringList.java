@@ -3,7 +3,7 @@ package taskone;
 import java.util.List;
 import java.util.ArrayList;
 
-class StringList {
+public class StringList {
     
     List<String> strings = new ArrayList<String>();
 

@@ -128,30 +128,37 @@ public class Client {
      * Function main().
      */
     public static void main(String[] args) throws IOException {
-        String host;
-        int port;
+        String host = "localhost"; // def hostname
+        int port = 8000; // def port
         Socket sock;
         stdin = new BufferedReader(new InputStreamReader(System.in));
         try {
-            if (args.length != 2) {
+        	if (args.length == 0) {
+        		System.out.println("Using default port 8000 and localhost");
+        		System.out.println("Other usage: gradle runClient -Phost=localhost -Pport=9099 -q --console=plain");
+        	}
+        	else if (args.length == 2) {
                 // gradle runClient -Phost=localhost -Pport=9099 -q --console=plain
-                System.out.println("Usage: gradle Client -Phost=localhost -Pport=9099");
+        		host = args[0];
+                port = -1;
+                try {
+                    port = Integer.parseInt(args[1]);
+                } catch (NumberFormatException nfe) {
+                    System.out.println("[Port] must be an integer");
+                    System.exit(2);
+                }
+            }
+        	else {
+        		System.out.println("Error: wrong argument count!");
+        		System.out.println("Usage: gradle runClient -Phost=localhost -Pport=9099");
                 System.exit(0);
-            }
-
-            host = args[0];
-            port = -1;
-            try {
-                port = Integer.parseInt(args[1]);
-            } catch (NumberFormatException nfe) {
-                System.out.println("[Port] must be an integer");
-                System.exit(2);
-            }
+        	}
 
             sock = new Socket(host, port);
             OutputStream out = sock.getOutputStream();
             InputStream in = sock.getInputStream();
             Scanner input = new Scanner(System.in);
+            String lineScan;
             int choice;
             do {
                 System.out.println();
@@ -164,7 +171,13 @@ public class Client {
                 System.out.println("5. switch <int> <int> - switch two string");
                 System.out.println("0. quit");
                 System.out.println();
-                choice = input.nextInt(); // what if not int.. should error handle this
+                try {
+                	lineScan = input.nextLine();
+                	choice = Integer.parseInt(lineScan); // what if not int.. should error handle this
+                } catch (NumberFormatException ne){
+                	System.out.println("Input is not a number!");
+                	choice = 10;
+                }
                 JSONObject request = null;
                 switch (choice) {
                     case (1):
@@ -186,7 +199,7 @@ public class Client {
                         request = quit();
                         break;
                     default:
-                        System.out.println("Please select a valid option (0-6).");
+                        System.out.println("Please select a valid option (0-5).");
                         break;
                 }
                 if (request != null) {
@@ -197,6 +210,12 @@ public class Client {
 
                     if (response.has("error")) {
                         System.out.println(response.getString("error"));
+                    } else if (response.has("ServerBusy")) {
+                    	System.out.println(response.getString("ServerBusy"));
+                    	sock.close();
+                        out.close();
+                        in.close();
+                        System.exit(0);
                     } else {
                         System.out.println();
                         System.out.println("The response from the server: ");
