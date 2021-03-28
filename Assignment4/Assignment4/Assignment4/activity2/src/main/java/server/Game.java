@@ -1,7 +1,8 @@
 package server;
 import java.util.Scanner;
-import java.util.*; 
+import java.util.*;
 import java.io.*;
+import org.json.*;
 
 /**
  * Class: Game 
@@ -22,6 +23,9 @@ public class Game {
     private int row; // rows in original and hidden
     private boolean won; // if the game is won or not
     private List<String> files = new ArrayList<String>(); // list of files, each file has one image
+    
+    private String pokeASCII;
+    private String pokeName;
 
 
     public Game(){
@@ -42,8 +46,16 @@ public class Game {
      * @param args Unused.
      * @return Nothing.
      */
-    public void setWon(){
+    public void setWon() {
         won = true;
+    }
+    
+    /**
+     * Gets the won flag
+     * @return
+     */
+    public boolean getWon() {
+    	return won;
     }
 
     /**
@@ -55,26 +67,41 @@ public class Game {
             idx = 0;
             won = false; 
             List<String> rows = new ArrayList<String>();
-
-            try{
-                // loads one random image from list
-                Random rand = new Random(); 
-                col = 0;
-                int randInt = rand.nextInt(files.size());
-                File file = new File(
-                        Game.class.getResource("/"+files.get(randInt)).getFile()
-                        );
-                BufferedReader br = new BufferedReader(new FileReader(file));
-                String line;
-                while ((line = br.readLine()) != null) {
-                    if (col < line.length()) {
-                        col = line.length();
+            
+            try {
+            	Random randGenerator = new Random(); // Picks a random number to choose from
+            	int minPoke = 1; int maxPoke = 151; // The range of pokemon (can actually be up to 890)
+            	int randomInt = randGenerator.nextInt((maxPoke - minPoke) + 1) + minPoke; // generate random num
+            	col = 0;
+            	
+            	String jsonDir = "txtFiles/pokemon/pokemons.json";
+            	File jsonFile = new File(jsonDir);
+            	if (jsonFile.exists()) {
+            		InputStream inS = new FileInputStream(jsonDir);
+            		JSONObject allPokes = (JSONObject) new JSONTokener(inS).nextValue();
+            		JSONObject pokeObj = allPokes.getJSONObject(Integer.toString(randomInt));
+            		pokeASCII = pokeObj.getString("ascii");
+            		pokeName = pokeObj.getString("name");
+            		System.out.println("Chosen pokemon: " + pokeName);
+            		System.out.println("ASCII:\n" + pokeASCII);
+            		
+            		Reader inputString = new StringReader(pokeASCII);
+            		BufferedReader buffRead = new BufferedReader(inputString);
+            		
+                    String line;
+                    while ((line = buffRead.readLine()) != null) {
+                        if (col < line.length()) {
+                            col = line.length();
+                        }
+                        rows.add(line);
                     }
-                    rows.add(line);
-                }
-            }
-            catch (Exception e){
-                System.out.println("File load error"); // extremely simple error handling, you can do better if you like. 
+            		
+            	} else {
+            		System.out.println("Couldn't find JSON file!");
+            	}
+            } catch (Exception e) {
+            	System.out.println("JSON file could not be read!");
+            	e.printStackTrace();
             }
 
             // this handles creating the orinal array and the hidden array in the correct size
@@ -101,6 +128,7 @@ public class Game {
             setIdxMax(col * row);
         }
         else {
+        	System.out.println("\nA game is currently running! Sending new player to current game.\n");
         }
     }
 
