@@ -71,3 +71,25 @@ Run Java:
 Java
 gradle runClient -Pport=9099 -Phost='localhost'
 gradle runServer -Pport=9099
+
+## CONSTRAINTS MET:
+1. The project runs through gradle.
+2. The protocol was implemented as seen in the Protobuf files.
+3. The client program asks for a name, connects to the server, then displays the main menu with three options.
+4. When the user types 1: The server sends a LEADER response, and the client displays the leaderboard.
+5. The leader board is the same for all clients and is stored as a JSON file.
+6. When the user types 2: The server creates a new game and sends a TASK response with an image and question.
+7. Multiple clients can enter the same game.
+8. When clients finish the image, the server sends a WON response and the user can go back to the main menu.
+9. The tasks are sent and checked on the server side. The client does not know the answers.
+10. All of the tasks are small questions that are presented neatly and are fast to answer.
+11. When the user types 3: The client disconnects gracefully and the server keeps running.
+12. When the client disconnects in any other way, the server keeps running.
+13. The tasks are based on pokemon trivia and are randomly selected.
+14. Currently working on running my server in AWS.
+15. Something creative: The server randomly selects the images from a JSON file containing 890 different ASCII drawings of pokemon.
+16. ---
+17. Currently working on testing my client.
+18. The answer is always printed on the server.
+
+
