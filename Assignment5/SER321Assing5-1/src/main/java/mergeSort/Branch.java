@@ -98,7 +98,8 @@ public class Branch extends Node {
   }
 
   public static void main(String[] args) {
-    new Branch(Integer.valueOf(args[0]), Integer.valueOf(args[1]), Integer.valueOf(args[2]), "localhost", "localhost").run();
+    new Branch(Integer.valueOf(args[0]), Integer.valueOf(args[1]), Integer.valueOf(args[2]), "ec2-3-129-70-113.us-east-2.compute.amazonaws.com", "localhost").run();
+    // changed left port (8000 localhost) to AWS setup
   }
 
 
