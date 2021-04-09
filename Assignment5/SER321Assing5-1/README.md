@@ -42,37 +42,53 @@
 	grab data from the sorters.
 
 - 3). Experiment with the "tree" setup. What happens with more or less nodes when sorting the same array and different arrays? When does the distribution make things better? Does it even make things faster? As in the previous step expriment and describe your experiment and your results in detail.
-
+	
+	For this experiment, I did something similar to the Professor's video provided and divided up the work into two Branch nodes. These branches then had two Sorters each to sort the arrays
+	for them. The Start task then waits for the Branches to finish joining up the complete array to give us the result.
+	
 	TESTS RAN:
-	- One Sorter Node:
+	- Given array; TIME: ~52 milliseconds
+	- Ones Array; TIME: ~14 milliseconds
+	- Long Array (7 times larger than given array); TIME: ~77 milliseconds
+	- Short Array (about 1/4 the size); TIME: ~4 milliseconds
 	
-	- Two Sorter Nodes:
-	
-	- Three Sorter Nodes:
-	
-	- Four Sorter Nodes:
-	
+	The results were great. Dividing up the work further is what "Divide and Conquer" algorithms are all about. Giving each branch a smaller workload means it can be sorted even faster and thus
+	the results are much quicker. This was not as noticable however in the short array, as the array size was already quite small.
 
 - 4). Explain the traffic that you see in wireshark. How much traffic is generated with this setup and do you have a way to reduce it?
 
+	There is the initial dump of the arrays from the Branch to its Sorters, but then the branch must send in "peek/remove" commmands to each Sorter in order to get the sorted arrays.
+	We should be able to reduce this large amount of traffic by having the sorters just send their array all at once, then let the Branch node sort these two nodes locally.
 
 ## Task 2: Running it outside of localhost
-1. Do you expect changes in runtimes? Why or why not?
+- 1). Do you expect changes in runtimes? Why or why not?
+	
+	Yes, I expect a large difference in runtimes. With the other experiments, we were running everything locally and thus did not have this faraway internet connection slowing us down.
 
-
-2. Do you see a difference on how long it takes to sort the arrays? Explaion the differences (or why there are none).
-
+- 2). Do you see a difference on how long it takes to sort the arrays? Explain the differences (or why there are none).
+	
+	Yes, because we have the Sorters running in an AWS instance, the Branch has traffic coming in and out from outside the computer. The Sorters have an easy time sorting their
+	part of the array and setting up the priority queue, but the Branch must then have these Sorters send in all of their data one peek at a time, which takes significantly longer
+	since it is not local.
 
 ## Task 3: How to improve
-1. Where is the most time lost and could you make this more efficient?
+- 1). Where is the most time lost and could you make this more efficient?
+	
+	I believe that there is a lot of time lost when each Sorter has to send in a value and the branch sorts it, one at a time, to merge both arrays together. It would probably be more efficient
+	if the Sorters sent in their entire array to the Branch at once, and have the Branch order those arrays locally.
 
-
-2. Does it make sense to run the algorithm as a distributed algorithm? Why or why not?
-
+- 2). Does it make sense to run the algorithm as a distributed algorithm? Why or why not?
+	
+	I think the one case where this would be beneficial is if the computers you were running the systems on were not at all powerful, and you were dealing with a very, very large set of data.
+	This way the workload would be divided into smaller pieces for each computer to handle well. Otherwise, I do not think it makes sense to run mergesort as a distributed algorithm.
+	As we saw in the AWS segment, having the traffic leave our computer and come back makes this significantly slower compared to running things locally. And if you wanted to run this system
+	locally, then why not just use threads instead?
 
 ## Gradle Tasks Ran
 Note: This is just for myself, to keep track of the gradle commands I used to run this.
 - gradle Starter
+- gradle Branch
 - gradle Sorter --args=8000
 - gradle Sorter --args=8001
 - run the Sorters on AWS
+- changed portH (localhost) for AWS setup to "ec2-3-129-70-113.us-east-2.compute.amazonaws.com"
