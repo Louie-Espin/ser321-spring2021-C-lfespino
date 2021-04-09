@@ -16,3 +16,10 @@ gradle-app.setting
 /gradlew
 /gradlew.bat
 /gradle/
+
+.gradle
+/build/
+/.classpath
+/.project
+/.settings/
+/bin/
