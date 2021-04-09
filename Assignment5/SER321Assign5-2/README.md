@@ -1,3 +1,36 @@
+## VIDEO LINK
+https://youtu.be/dEseTtvwpN0
+
+## REQUIREMENTS MET
+- 1 - can send messages to chat and have the other peers receive them.
+- 2 - can check if a pawn disonnects and removes then from their peer list.
+- 3 - all peers are entered once into the peer list.
+- 4 - by calling "joke" you can submit a joke for review. The other peers can vote "yay" or "nay" for your joke.
+- 4 - there is an "addJoke" json that then adds the joke to the joke list, and peers can see the list with "jokes".
+- 5a - the peers can detect if the leader is disconnected and can keep running as normal.
+- 5b - if a leader disconnects, the joke list can still be handled.
+- 5c - the peers keep running even if a leader disconnects
+- 5d - new peers can join even after the leader disconnects
+- 6 - overall good error handling
+
+## HOW TO USE
+- type anything to send a message
+- type quit to exit the network
+- type joke to submit a joke for review
+- type jokes to see  the jokes list
+- type yay to approve a joke for submission
+- type nay to prevent a joke from being submitted to the jokes list
+- type peers to see the list of peers you have
+
+## PROTOCOL
+I created various JSON strings in order for each peer to communicate
+- JOIN: this is sent when a peer wants to joint the network
+- REMOVE: this is sent when a peer leaves the network, alerting the other peers to update their list
+- JOKE: this is used to submit a joke for review
+- YES: this is used to show that the peer has approved the submission of a joke
+- NO: this is used to show that the peer has not approved the submission of a joke, preventing it from being added to the joke list
+- addJoke: this adds the joke the peers list
+
 ## Purpose:
 Very basic peer-2-peer for a chat. All peers can communicate with each other. 
 
