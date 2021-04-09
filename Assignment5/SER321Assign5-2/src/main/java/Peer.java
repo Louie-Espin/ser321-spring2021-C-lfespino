@@ -1,21 +1,10 @@
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.Socket;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import java.io.PrintWriter;
 import org.json.*;
-
-/**
- * This is the main class for the peer2peer program.
- * It starts a client with a username and host:port for the peer and host:port of the initial leader
- * This Peer is basically the client of the application, while the server (the one listening and waiting for requests)
- * is in a separate thread ServerThread
- * In here you should handle the user input and then send it to the server of annother peer or anything that needs to be done on the client side
- * YOU CAN MAKE ANY CHANGES YOU LIKE: this is a very basic implementation you can use to get started
- * 
- */
 
 public class Peer {
 	private String username;
@@ -23,212 +12,324 @@ public class Peer {
 	private ServerThread serverThread;
 
 	private Set<SocketInfo> peers = new HashSet<SocketInfo>();
+	private String tempJoke = null;
+	private int votes = 0;
+	private Set<String> jokes = new HashSet<String>();
 	private boolean leader = false;
 	private SocketInfo leaderSocket;
 
-	
+
 	public Peer(BufferedReader bufReader, String username,ServerThread serverThread){
 		this.username = username;
 		this.bufferedReader = bufReader;
 		this.serverThread = serverThread;
 	}
 
-	public void setLeader(boolean leader, SocketInfo leaderSocket){
+	public void setLeader(boolean leader, SocketInfo leaderSocket) {
 		this.leader = leader;
 		this.leaderSocket = leaderSocket;
 	}
-
-	public boolean isLeader(){
+	public boolean isLeader() {
 		return leader;
 	}
-
-	public void addPeer(SocketInfo si){
+	public void addPeer(SocketInfo si) {
 		peers.add(si);
 	}
-	
-	// get a string of all peers that this peer knows
-	public String getPeers(){
-		String s = "";
-		for (SocketInfo p: peers){
-			s = s +  p.getHost() + ":" + p.getPort() + " ";
-		}
-		return s; 
+
+	public void setTempJoke(String temp) {
+		tempJoke = temp;
+	}
+	public String getTempJoke() {
+		return tempJoke;
 	}
 
-	/**
-	 * Adds all the peers in the list to the peers list
-	 * Only adds it if it is not the currect peer (self)
-	 *
-	 * @param list String of peers in the format "host1:port1 host2:port2"
-	 */
-	public void updateListenToPeers(String list) throws Exception {
-		String[] peerList = list.split(" ");
-		for (String p: peerList){
-			String[] hostPort = p.split(":");
+	public void addVote() {
+		votes++;
+	}
 
-			// basic check to not add ourself, since then we would send every message to ourself as well (but maybe you want that, then you can remove this)
-			if ((hostPort[0].equals("localhost") || hostPort[0].equals(serverThread.getHost())) && Integer.valueOf(hostPort[1]) == serverThread.getPort()){
+	public int getVotes() {
+		return votes;
+	}
+	public void setVotes(int count) {
+		votes = count;
+	}
+
+	public String getPeers() {
+		String s = "";
+		for (SocketInfo p: peers) {
+			s = s + p.getHost()+ "-"+ p.getPort()+"-"+p.getName()+"-"+p.getLeader()+";";
+
+		}
+		return s;
+	}
+
+	public String getJokes() {
+		StringBuilder s = new StringBuilder();
+		for (String j: jokes) {
+			s.append(j).append(";");
+		}
+		return s.toString();
+	}
+
+	public void addJoke(String list) {
+		String[] jokeList = list.split(";");
+		jokes.addAll(Arrays.asList(jokeList));
+	}
+
+	public int getPeerCount() {
+		return peers.size();
+	}
+
+	public void updateListenToPeers(String list) throws Exception {
+		String[] peerList = list.split(";");
+		for (String p: peerList){
+
+			String[] hostPort = p.split("-");
+
+			if ((hostPort[0].equals("localhost") || hostPort[0].equals(serverThread.getHost())) && Integer.parseInt(hostPort[1]) == serverThread.getPort()){
 				continue;
 			}
-			SocketInfo s = new SocketInfo(hostPort[0], Integer.valueOf(hostPort[1]));
-			peers.add(s);
+			SocketInfo socketInfo = new SocketInfo(hostPort[0], Integer.parseInt(hostPort[1]), hostPort[2], Boolean.parseBoolean(hostPort[3]));
+			peers.add(socketInfo);
 		}
 	}
-	
-	/**
-	 * Client waits for user to input can either exit or send a message
-	 */
-	public void askForInput() throws Exception {
-		try {
-			
-			System.out.println("> You can now start chatting (exit to exit)");
-			while(true) {
-				String message = bufferedReader.readLine();
-				if (message.equals("exit")) {
-					System.out.println("bye, see you next time");
-					break;
-				} else {
-					pushMessage("{'type': 'message', 'username': '"+ username +"','message':'" + message + "'}");
-				}	
+	public void removePeer(int portToRemove) {
+		Set<SocketInfo> toRemove = new HashSet<SocketInfo>();
+		for (SocketInfo p: peers) {
+			if (p.getPort() == serverThread.getPort()) {
+				continue;
 			}
-			System.exit(0);
-		
-		} catch (Exception e) {
-			e.printStackTrace();
+			if (p.getPort() == portToRemove) {
+				toRemove.add(p);
+			}
+		}
+
+		for (SocketInfo s: toRemove) {
+			System.out.println(s.getName()+" has disconnected!");
+			peers.remove(s);
 		}
 	}
 
-// ####### You can consider moving the two methods below into a separate class to handle communication
-	// if you like (they would need to be adapted some of course)
 
-
-	/**
-	 * Send a message only to the leader 
-	 *
-	 * @param message String that peer wants to send to the leader node
-	 * this might be an interesting point to check if one cannot connect that a leader election is needed
-	 */
 	public void commLeader(String message) {
 		try {
-			BufferedReader reader = null; 
-				Socket socket = null;
-				try {
-					socket = new Socket(leaderSocket.getHost(), leaderSocket.getPort());
-					reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-					
-				} catch (Exception c) {
-					if (socket != null) {
-						socket.close();
-					} else {
-						System.out.println("Could not connect to " + leaderSocket.getHost() + ":" + leaderSocket.getPort());
-					}
-					return; // returning since we cannot connect or something goes wrong the rest will not work. 
+			BufferedReader reader = null;
+			Socket socket = null;
+
+			try {
+				socket = new Socket(leaderSocket.getHost(), leaderSocket.getPort());
+				reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			}
+			catch (Exception c) {
+				if (socket != null) {
+					socket.close();
 				}
+				else {
+					System.out.println("UNABLE TO CONNECT TO" + leaderSocket.getHost() + ":" + leaderSocket.getPort());
+				}
+				return;
+			}
 
-				PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-				out.println(message);
+			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 
-				JSONObject json = new JSONObject(reader.readLine());
-				System.out.println("     Received from server " + json);
-				String list = json.getString("list");
-				updateListenToPeers(list); // when we get a list of all other peers that the leader knows we update them
+			out.println(message);
+			System.out.println("SENT " + message);
+			JSONObject json = new JSONObject(reader.readLine());
+			System.out.println("RECEIVED " + json);
 
-		} catch(Exception e) {
-			e.printStackTrace();
+
+			switch (json.getString("type")) {
+				case "join":
+					updateListenToPeers(json.getString("list"));
+					break;
+				case "remove":
+					removePeer(json.getInt("port"));
+					break;
+				case "yes":
+					System.out.println("VOTED: 'YAY'");
+					break;
+				case "no":
+					System.out.println("VOTED: 'NAY'");
+					break;
+			}
+
+		}
+		catch(Exception e) {
+			System.out.println("Exception: Could not reach leader!");
+			System.exit(2);
 		}
 	}
 
-/**
-	 * Send a message to every peer in the peers list, if a peer cannot be reached remove it from list
-	 *
-	 * @param message String that peer wants to send to other peers
-	 */
+
 	public void pushMessage(String message) {
 		try {
-			System.out.println("     Trying to send to peers: " + peers.size());
+			System.out.println("Number of peers connected " + peers.size());
 
 			Set<SocketInfo> toRemove = new HashSet<SocketInfo>();
-			BufferedReader reader = null; 
+			BufferedReader reader = null;
 			int counter = 0;
-			for (SocketInfo s : peers) {
+
+			for (SocketInfo socketInfo : peers) {
 				Socket socket = null;
 				try {
-					socket = new Socket(s.getHost(), s.getPort());
+					socket = new Socket(socketInfo.getHost(), socketInfo.getPort());
 					reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				} catch (Exception c) {
+				}
+				catch (Exception c) {
 					if (socket != null) {
 						socket.close();
-					} else {
-						System.out.println("  Could not connect to " + s.getHost() + ":" + s.getPort());
-						System.out.println("  Removing that socketInfo from list");
-						toRemove.add(s);
-						continue;
 					}
-					System.out.println("     Issue: " + c);
+					else {
+						System.out.println("This peer is unresponsive: "+socketInfo.getHost()+":"+socketInfo.getPort());
+
+						if (socketInfo.getLeader()) {
+							System.out.println("Removing leader peer!");
+						}
+						else {
+							toRemove.add(socketInfo);
+							System.out.println("Removing pawn peer!");
+
+						}
+
+						continue;
+
+					}
+					System.out.println("Issue " + c);
 				}
 
 				PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+				System.out.println("Message sent: " + message);
 				out.println(message);
 				counter++;
 				socket.close();
-		     }
-		    for (SocketInfo s: toRemove){
-		    	peers.remove(s);
-		    }
+			}
 
-		    System.out.println("     Message was sent to " + counter + " peers");
+			if (!toRemove.isEmpty()) {
+				for (SocketInfo s: toRemove) {
+					commLeader("{'type': 'remove','port':'"+s.getPort()+"'}");
+				}
+			}
 
-		} catch(Exception e) {
-			e.printStackTrace();
+			System.out.println("Message sent to " + counter + " peers");
+
+		}
+		catch(Exception e) {
+			System.out.println("Could not send message!");
+			System.exit(2);
 		}
 	}
 
-	/**
-	 * Main method saying hi and also starting the Server thread where other peers can subscribe to listen
-	 *
-	 * @param args[0] username
-	 * @param args[1] port for server
-	 */
+
+	public void askForInput() throws Exception {
+		try {
+			System.out.println("> You can now start chatting (exit to exit)");
+			label:
+			while(true) {
+				String message = bufferedReader.readLine();
+				switch (message) {
+					case "exit":
+						System.out.println("Goodbye! ");
+						break label;
+					case "peers":
+						System.out.println("Known peers: ");
+						System.out.println(getPeers());
+						break;
+					case "joke":
+						System.out.println("Please enter your joke: ");
+						String joke = bufferedReader.readLine();
+						commLeader("{'type': 'joke', 'username': '" + username + "', 'message': '" + joke + "'}");
+						break;
+					case "yay":
+						System.out.println("YAY vote submitted!");
+						commLeader("{'type': 'yes', 'username': '" + username + "'}");
+						break;
+					case "nay":
+						System.out.println("NAY vote submitted!");
+						commLeader("{'type': 'no', 'username': '" + username + "'}");
+						break;
+					case "jokes":
+						System.out.println("Known jokes: ");
+						System.out.println(getJokes());
+						break;
+					default:
+						System.out.println("Message sent!");
+						pushMessage("{'type': 'message', 'username': '" + username + "','message':'" + message + "'}");
+						break;
+				}
+			}
+			System.exit(0);
+
+		}
+		catch (Exception e) {
+			System.out.println("No input received!");
+			System.exit(2);
+		}
+	}
+
+
 	public static void main (String[] args) throws Exception {
 
 		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
-		String username = args[0];
-		System.out.println("Hello " + username + " and welcome! Your port will be " + args[1]);
 
-		int size = args.length;
-		System.out.println(size);
-		if (size == 4) {
-			System.out.println("Started peer");
-        } else {
-            System.out.println("Expected: <name(String)> <peer(String)> <leader(String)> <isLeader(bool-String)>");
-            System.exit(0);
-        }
-
-        System.out.println(args[0] + " " + args[1]);
-        ServerThread serverThread = new ServerThread(args[1]);
-        Peer peer = new Peer(bufferedReader, username, serverThread);
-
-        String[] hostPort = args[2].split(":");
-        SocketInfo s = new SocketInfo(hostPort[0], Integer.valueOf(hostPort[1]));
-        System.out.println(args[3]);
-        if (args[3].equals("true")){
-			System.out.println("Is leader");
-			peer.setLeader(true, s);
-		} else {
-			System.out.println("Pawn");
-
-			// add leader to list 
-			peer.addPeer(s);
-			peer.setLeader(false, s);
-
-			// send message to leader that we want to join
-			peer.commLeader("{'type': 'join', 'username': '"+ username +"','ip':'" + serverThread.getHost() + "','port':'" + serverThread.getPort() + "'}");
-
+		if (args.length == 4) {
+			System.out.println("Attempting to connect!");
 		}
+		else {
+			System.out.println("Expected: <name(String)> <peer(String)> <leader(String)> <isLeader(bool-String)>");
+			System.exit(0);
+		}
+
+		String username = args[0];
+		String peerInfo = args[1];
+		String leaderInfo = args[2];
+		boolean isLeader = args[3].equalsIgnoreCase("true");;
+
+
+
+		String peerHost = null;
+		int peerPort = 0;
+		try {
+			peerHost = peerInfo.substring(0,peerInfo.indexOf(":"));
+			peerPort = Integer.parseInt(peerInfo.substring(peerInfo.indexOf(":")+1));
+		}
+		catch (Exception e) {
+			System.out.println("Given peer information is invalid!");
+			System.exit(2);
+		}
+
+
+
+		String leaderHost = null;
+		int leaderPort = 0;
+		try {
+			leaderHost = leaderInfo.substring(0,leaderInfo.indexOf(":"));
+			leaderPort = Integer.parseInt(leaderInfo.substring(leaderInfo.indexOf(":")+1));
+		}
+		catch (Exception e) {
+			System.out.println("Given leader information is invalid!");
+			System.exit(2);
+		}
+
+		ServerThread serverThread = new ServerThread(peerHost, peerPort, username, isLeader);
+		Peer peer = new Peer(bufferedReader, username, serverThread);
+		SocketInfo leaderSocket = new SocketInfo(leaderHost, leaderPort, "'Given Leader'", true);
+
+		if (isLeader) {
+			System.out.println("[SYSTEM]: "+username+" IS: LEADER");
+			peer.setLeader(true, leaderSocket);
+		}
+		else {
+			System.out.println("[SYSTEM]: "+username+" IS: PAWN");
+			peer.addPeer(leaderSocket);
+			peer.setLeader(false, leaderSocket);
+			peer.commLeader("{'type': 'join', 'username': '"+ username +"','ip':'" + serverThread.getHost() + "','port':'" + serverThread.getPort() + "','leader':'" + serverThread.isLeader() + "'}");
+		}
+
+
+		System.out.println("Welcome "+username+"!");
 		serverThread.setPeer(peer);
 		serverThread.start();
 		peer.askForInput();
-
 	}
-	
+
 }

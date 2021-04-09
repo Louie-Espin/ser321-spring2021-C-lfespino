@@ -6,55 +6,108 @@ import java.io.PrintWriter;
 
 import org.json.*;
 
-/**
- * This is the class that handles communication with a peer/client that has connected to use
- * and wants something from us
- * 
- */
-
 public class ServerTask extends Thread {
 	private BufferedReader bufferedReader;
-	private Peer peer = null; // so we have access to the peer that belongs to that thread
+	private Peer peer = null;
 	private PrintWriter out = null;
 	private Socket socket = null;
-	
-	// Init with socket that is opened and the peer
+
 	public ServerTask(Socket socket, Peer peer) throws IOException {
 		bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 		out = new PrintWriter(socket.getOutputStream(), true);
 		this.peer = peer;
 		this.socket = socket;
 	}
-	
-	// basically wait for an input, right now we can only handle a join request
-	// and a message
-	// More requests will be needed to make everything work
-	// You can enhance this or totally change it, up to you. 
-	// I used simple JSON here, you can use your own protocol, use protobuf, anything you want
-	// in here this is not done especially pretty, I just use a PrintWriter and BufferedReader for simplicity
+
 	public void run() {
 		while (true) {
 			try {
-			    JSONObject json = new JSONObject(bufferedReader.readLine());
+				JSONObject json = new JSONObject(bufferedReader.readLine());
 
-			    if (json.getString("type").equals("join")){
-			    	System.out.println("     " + json); // just to show the json
+				switch (json.getString("type")) {
+					case "join":
+						System.out.println(json.getString("username") + " wants to join the network");
+						peer.updateListenToPeers(json.getString("ip") + "-" + json.getInt("port") + "-" + json.getString("username") + "-" + json.getBoolean("leader"));
+						out.println(("{'type': 'join', 'list': '" + peer.getPeers() + "'}"));
 
-			    	System.out.println("     " + json.getString("username") + " wants to join the network");
-			    	peer.updateListenToPeers(json.getString("ip") + ":" + json.getInt("port"));
-			    	out.println(("{'type': 'join', 'list': '"+ peer.getPeers() +"'}"));
+						if (peer.isLeader()) {
+							peer.pushMessage(json.toString());
+						}
 
-			    	if (peer.isLeader()){
-			    		peer.pushMessage(json.toString());
-			    	}
-			    	// TODO: should make sure that all peers that the leader knows about also get the info about the new peer joining
-			    	// so they can add that peer to the list
-			    } else {
-			    	System.out.println("[" + json.getString("username")+"]: " + json.getString("message"));
-			    }
-			    
-			    
-			} catch (Exception e) {
+						break;
+					case "remove":
+						System.out.println("Updating the list!");
+						peer.removePeer(json.getInt("port"));
+						out.println(json);
+						
+						if (peer.isLeader()) {
+							peer.pushMessage(json.toString());
+						}
+
+						break;
+					case "joke":
+						System.out.println(json.getString("username") + " has submitted a joke");
+						out.println(("{'type': 'joke', 'message': '"+json.getString("message")+"'}"));
+
+						if (peer.isLeader()) {
+							if (peer.getTempJoke() == null) {
+								peer.setTempJoke(json.getString("message"));
+							}
+							peer.pushMessage("{'type': 'jokeQuery', 'message': '"+peer.getTempJoke()+"'}");
+						}
+
+						break;
+					case "jokeQuery":
+						System.out.println("Please vote on the following joke: '"+json.getString("message")+"'");
+
+						break;
+					case "yes":
+						System.out.println("'Yes' vote: "+json.getString("username")+"'");
+						out.println(json);
+
+						if (peer.isLeader() && peer.getTempJoke() != null) {
+
+							peer.pushMessage("{'type': 'message', 'username': 'LEADER', 'message': '"+peer.getTempJoke()+" was voted YES'}");
+
+							peer.addVote();
+
+							if (peer.getVotes() == peer.getPeerCount()) {
+								peer.addJoke(peer.getTempJoke());
+								peer.pushMessage("{'type': 'addJoke', 'message': '"+peer.getJokes()+"'}");
+								peer.setTempJoke(null);
+								peer.setVotes(0);
+							}
+
+
+						}
+
+						break;
+					case "no":
+						System.out.println("'No' vote: '"+json.getString("username")+"'");
+						out.println(json);
+
+						if (peer.isLeader() && peer.getTempJoke() != null) {
+							peer.pushMessage("{'type': 'message', 'username': 'LEADER', 'message': '"+peer.getTempJoke()+" was voted NO, joke discarded'}");
+							peer.setTempJoke(null);
+							peer.setVotes(0);
+						}
+
+						break;
+					case "addJoke":
+						System.out.println("Joke list has been updated...");
+
+						peer.addJoke(json.getString("message"));
+
+						out.println(json);
+
+						break;
+					default:
+						System.out.println("[" + json.getString("username")+"]: " + json.getString("message"));
+						break;
+				}
+
+			}
+			catch (Exception e) {
 				interrupt();
 				break;
 			}
