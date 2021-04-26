@@ -1,0 +1,32 @@
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "service";
+option java_outer_classname = "TranslateProto";
+
+package services;
+
+service Translate {
+  rpc uwu (UwuRequest) returns (UwuResponse) {}
+  rpc flip (FlipRequest) returns (FlipResponse) {}
+
+}
+
+message UwuRequest {
+  string toUwu = 1;
+}
+
+message UwuResponse {
+  string uwu = 1;
+}
+
+
+message FlipRequest {
+  string toFlip = 1;
+}
+
+message FlipResponse {
+  string flip = 1;
+}
+
