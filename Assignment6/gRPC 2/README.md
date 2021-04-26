@@ -50,7 +50,7 @@ The Translate Service first asks the user for a sentence, then asks to choose be
 Not implemented.
 
 # VIDEO LINK
-link is included in the vid.txt file
+https://youtu.be/RqdTGCu0G54
 
 # GIVEN README INFORMATION
 ## GRPC Services and Registry
